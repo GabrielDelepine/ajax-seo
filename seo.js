@@ -1,14 +1,16 @@
 var system = require('system');
 
-if (system.args.length > 2 || system.args[1] == 'help') {
-    console.log("Usage:   phantomjs seo.js [port -- optional, default 8888]");
+if (system.args.length > 3 || system.args[1] == 'help') {
+    console.log("Usage:   phantomjs seo.js [port -- optional, default 8888] [projectName -- optional]");
     console.log("Example: phantomjs seo.js");
     console.log("Example: phantomjs seo.js 8848");
+    console.log("Example: phantomjs seo.js 8848 angularjs");
     phantom.exit();
 }
 
 var port   = system.args[1] || 8888,
     server = require('webserver').create(),
+    projectName = system.args[2],
     log = function(message) {
         var messages = typeof message === 'string' ? [message] : message;
         console.info(
@@ -70,7 +72,7 @@ var render = function(url, cb) {
        page.evaluate(function() {
             setTimeout(function() {
                 window.callPhantom();
-            }, 300);
+            }, 1000);
         });
     };
 
@@ -99,6 +101,15 @@ var service = server.listen(port, function (request, response) {
     var url = 'http://' + request.headers['Host'].replace(/:[0-9]+$/, '') + ':8080' + request.url;
     log('URL REQUESTED : ' + url);
     render(url, function(html) {
+
+        switch(projectName) {
+            case 'angularjs':
+                html = html
+                    .replace(' data-ng-view=', ' data-pre-rendered-ng-view=')
+                    .replace(/\ data-ng-include=/g, ' data-pre-rendered-ng-include=');
+            break;
+        }
+
         response.statusCode = 200;
         response.write(html);
         response.close();
