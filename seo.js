@@ -7,7 +7,7 @@ if (system.args.length > 2 || system.args[1] == 'help') {
     phantom.exit();
 }
 
-var port   = system.args[1] || 8888, 
+var port   = system.args[1] || 8888,
     server = require('webserver').create(),
     log = function(message) {
         var messages = typeof message === 'string' ? [message] : message;
@@ -22,10 +22,14 @@ var render = function(url, cb) {
     var page = require('webpage').create();
     page.settings.loadImages = false;
     page.settings.localToRemoteUrlAccessEnabled = true;
+    page.settings.resourceTimeout = 1000;
+    page.onResourceTimeout = function(requestData, request) {
+        log(['Request  (#', requestData.id, ') ', requestData.url, 'timeout']);
+    }
     page.onResourceRequested = function(requestData, request) {
         // Ignore css and fonts.
         if (['text/css', 'application/font-woff'].indexOf(requestData.headers['Content-Type']) >= 0
-            || (/.+?\.(css|woff)/gi).test(requestData.url)) {
+            || (/.+?\.(css|eot|woff|woff2|ttf)/gi).test(requestData.url)) {
             log(['Request  (#', requestData.id, ') ', requestData.url, 'abort']);
             request.abort();
         } else {
@@ -66,9 +70,12 @@ var render = function(url, cb) {
        page.evaluate(function() {
             setTimeout(function() {
                 window.callPhantom();
-            }, 10000);
+            }, 300);
         });
     };
+
+    // DEV : clearing cache
+    page.clearMemoryCache();
     page.open(url);
 };
 
@@ -84,13 +91,14 @@ var toHashBangUrl = function(host, path) {
     var route = route_parts[0].split('=')[1];
     return host
       + path.slice(0, path.indexOf('?'))
-      + '#!' 
+      + '#!'
       + decodeURIComponent(route);
 };
 
 var service = server.listen(port, function (request, response) {
-    // log(JSON.stringify(request));
-    render(toHashBangUrl(request.headers['Host'], request.url), function(html) {
+    var url = 'http://' + request.headers['Host'].replace(/:[0-9]+$/, '') + ':8080' + request.url;
+    log('URL REQUESTED : ' + url);
+    render(url, function(html) {
         response.statusCode = 200;
         response.write(html);
         response.close();
