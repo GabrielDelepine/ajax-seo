@@ -106,7 +106,12 @@ var service = server.listen(port, function (request, response) {
             case 'angularjs':
                 html = html
                     .replace(' data-ng-view=', ' data-pre-rendered-ng-view=')
-                    .replace(/\ data-ng-include=/g, ' data-pre-rendered-ng-include=');
+                    .replace('<!-- ngView:  -->', '<div data-ng-view=""></div>')
+                    .replace(/\ data-ng-include=/g, ' data-pre-rendered-ng-include=')
+                    .replace(/\ data-ng-repeat=/g, ' data-pre-rendered-ng-repeat=')
+                    .replace(/\ data-cli-ng-/g, ' data-ng-')
+                    .replace(/\{cli{/g, '{{')
+                    .replace(/\}cli}/g, '}}');
             break;
         }
 
